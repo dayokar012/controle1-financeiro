@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle Financeiro Simples</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
+      padding: 0 15px;
+      background: #f7f7f7;
+      color: #333;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #007bff;
+    }
+    form {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px #ccc;
+      margin-bottom: 20px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background-color: white;
+      margin-bottom: 6px;
+      padding: 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      box-shadow: 0 0 3px #ccc;
+    }
+    .entrada {
+      border-left: 5px solid #28a745;
+    }
+    .saida {
+      border-left: 5px solid #dc3545;
+    }
+    #saldo {
+      font-size: 1.5rem;
+      text-align: center;
+      font-weight: bold;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 5px #ccc;
+      margin-bottom: 40px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Controle Financeiro</h1>
+  <form id="formMovimentacao">
+    <input type="text" id="descricao" placeholder="Descrição" required />
+    <input type="number" id="valor" placeholder="Valor" step="0.01" min="0.01" required />
+    <select id="tipo">
+      <option value="entrada">Entrada (Receita)</option>
+      <option value="saida">Saída (Despesa)</option>
+    </select>
+    <button type="submit">Adicionar</button>
+  </form>
+
+  <h2>Movimentações</h2>
+  <ul id="listaMovimentacoes"></ul>
+
+  <div id="saldo">Saldo: R$ 0,00</div>
+
+  <script>
+    const form = document.getElementById('formMovimentacao');
+    const descricaoInput = document.getElementById('descricao');
+    const valorInput = document.getElementById('valor');
+    const tipoSelect = document.getElementById('tipo');
+    const lista = document.getElementById('listaMovimentacoes');
+    const saldoDisplay = document.getElementById('saldo');
+
+    // Puxa do localStorage ou inicia vazio
+    let movimentacoes = JSON.parse(localStorage.getItem('movimentacoes')) || [];
+
+    function salvarMovimentacoes() {
+      localStorage.setItem('movimentacoes', JSON.stringify(movimentacoes));
+    }
+
+    function formatarValor(valor) {
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarTela() {
+      lista.innerHTML = '';
+
+      movimentacoes.forEach((mov, index) => {
+        const li = document.createElement('li');
+        li.className = mov.tipo === 'entrada' ? 'entrada' : 'saida';
+        li.innerHTML = `
+          <span>${mov.descricao}</span> 
+          <span>${mov.tipo === 'saida' ? '- ' : '+ '}${formatarValor(mov.valor)}</span>
+          <button onclick="removerMov(${index})" style="background:none; border:none; color:#888; cursor:pointer;">&times;</button>
+        `;
+        lista.appendChild(li);
+      });
+
+      const saldo = movimentacoes.reduce((acc, mov) => {
+        return mov.tipo === 'entrada' ? acc + mov.valor : acc - mov.valor;
+      }, 0);
+
+      saldoDisplay.textContent = 'Saldo: ' + formatarValor(saldo);
+      saldoDisplay.style.color = saldo >= 0 ? '#28a745' : '#dc3545';
+    }
+
+    function removerMov(index) {
+      if (confirm('Deseja remover esta movimentação?')) {
+        movimentacoes.splice(index, 1);
+        salvarMovimentacoes();
+        atualizarTela();
+      }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const descricao = descricaoInput.value.trim();
+      const valor = parseFloat(valorInput.value);
+      const tipo = tipoSelect.value;
+
+      if (!descricao || isNaN(valor) || valor <= 0) {
+        alert('Preencha os dados corretamente.');
+        return;
+      }
+
+      movimentacoes.push({ descricao, valor, tipo });
+      salvarMovimentacoes();
+      atualizarTela();
+
+      descricaoInput.value = '';
+      valorInput.value = '';
+      tipoSelect.value = 'entrada';
+      descricaoInput.focus();
+    });
+
+    // Inicializa a tela na carga da página
+    atualizarTela();
+
+    // Disponibilizar função removerMov no escopo global para botão funcionar
+    window.removerMov = removerMov;
+  </script>
+</body>
+</html>
